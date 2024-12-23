@@ -47,3 +47,4 @@ agd_vcf.vcf.gz.samples
 bcftools.vcf.gz
 bcftools.vcf.gz.samples
 awk.vcf.gz
+awk.vcf.gz.samples
