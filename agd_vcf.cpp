@@ -25,9 +25,9 @@ void filter_vcf(const std::string& id_map_file, gzFile gz_out) {
     while (std::getline(map_file, map_line)) {
         std::istringstream iss(map_line);
         std::string col1, col2, col3;
-        if (std::getline(iss, col1, ',') && std::getline(iss, col2, ',') && std::getline(iss, col3, ',')) {
-            if (col3 != "-") {
-                id_map[col2] = col3;
+        if (std::getline(iss, col1, '\t') && std::getline(iss, col2, '\t') ) {
+            if (col2 != "-") {
+                id_map[col1] = col2;
             }
         }
     }
