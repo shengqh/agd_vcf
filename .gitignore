@@ -30,3 +30,14 @@
 *.exe
 *.out
 *.app
+dragen.sites.vcf.gz
+dragen.vcf.gz
+dragen1000.vcf
+result.sites.old.vcf
+result.sites.vcf
+result.vcf
+result.vcf.samples
+SAMPLE_ID_MAP_2024_Q2_163K_primaryGRID_v5_202410.csv
+test.sites.vcf
+test.vcf
+test.vcf.samples
