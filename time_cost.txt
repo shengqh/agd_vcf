@@ -1,0 +1,19 @@
+Time cost for each tool:
+agd_vcf:
+
+real	3m19.256s
+user	3m20.120s
+sys	0m44.012s
+52435
+bcftools:
+
+real	9m24.439s
+user	9m23.033s
+sys	0m19.811s
+52435
+awk:
+
+real	3m30.412s
+user	3m53.131s
+sys	0m48.372s
+52435

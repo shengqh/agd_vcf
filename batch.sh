@@ -14,14 +14,16 @@ fi
 if [[ ! -s agd_vcf.vcf.gz ]]; then
   echo "Testing agd_vcf..."
   echo "agd_vcf:" >> $TIME_COST_FILE
-  { time zcat $DRAGEN_VCF | ./agd_vcf --id_map_file=$ID_MAP_FILE -o=agd_vcf.vcf.gz ; } 2>> $TIME_COST_FILE
+  { time zcat $DRAGEN_VCF | ./agd_vcf --id_map_file=$ID_MAP_FILE | bgzip > agd_vcf.vcf.gz ; } 2>> $TIME_COST_FILE
+  zcat agd_vcf.vcf.gz | grep -v "^#" | wc -l >> $TIME_COST_FILE
 fi
 
 # 2. Test bcftools
 if [[ ! -s bcftools.vcf.gz ]]; then
   echo "Testing bcftools..."
   echo "bcftools:" >> $TIME_COST_FILE
-  { time bcftools view -f PASS -O z -o bcftools.vcf.gz $DRAGEN_VCF ; } 2>> $TIME_COST_FILE
+  { time bcftools view -f PASS $DRAGEN_VCF -O v | bgzip > bcftools.vcf.gz ; } 2>> $TIME_COST_FILE
+  zcat bcftools.vcf.gz | grep -v "^#" | wc -l >> $TIME_COST_FILE
 fi
 
 # 3. Test awk
@@ -29,6 +31,7 @@ if [[ ! -s awk.vcf.gz ]]; then
   echo "Testing awk..."
   echo "awk:" >> $TIME_COST_FILE
   { time zcat $DRAGEN_VCF | awk '$7 == "PASS" || $1 ~ /^#/' | bgzip > awk.vcf.gz ; } 2>> $TIME_COST_FILE
+  zcat awk.vcf.gz | grep -v "^#" | wc -l >> $TIME_COST_FILE
 fi
 
 echo "Time cost saved to $TIME_COST_FILE"

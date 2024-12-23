@@ -43,3 +43,7 @@ test.vcf
 test.vcf.samples
 agd_vcf.vcf.gz
 SAMPLE_ID_MAP_2024_Q2_163K_primaryGRID_v5_202410.txt
+agd_vcf.vcf.gz.samples
+bcftools.vcf.gz
+bcftools.vcf.gz.samples
+awk.vcf.gz

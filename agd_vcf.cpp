@@ -49,7 +49,9 @@ public:
             std::istringstream iss(map_line);
             std::string col1, col2;
             if (std::getline(iss, col1, '\t') && std::getline(iss, col2, '\t')) {
-                if (col2 != "-") {
+                if (col2 == "-") {
+                    id_map[col1] = col1 + "_INVALID";
+                }else{
                     id_map[col1] = col2;
                 }
             }
