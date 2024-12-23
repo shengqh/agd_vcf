@@ -101,13 +101,22 @@ public:
         }
 
         // Process data lines
+        size_t count = 0;
         while (std::cin.getline(buffer, buffer_size)) {
             size_t length = std::cin.gcount() - 1;
             if (is_pass_line(buffer, length)) {
                 std::cout.write(buffer, length);
                 std::cout.put('\n');
+                count++;
+                if (count % 10000 == 0) {
+                    std::cerr << count << ", " << std::flush;
+                }
+                if (count % 100000 == 0) {
+                    std::cerr << std::endl << std::flush;
+                }
             }
         }
+        std::cerr << count << std::endl << std::flush;
     }
 };
 

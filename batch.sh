@@ -7,13 +7,13 @@ ID_MAP_FILE="/nobackup/h_cqs/shengq2/biovu/AGD/SAMPLE_ID_MAP_2024_Q2_163K_primar
 # Output file for time costs
 TIME_COST_FILE="time_cost.txt"
 if [[ ! -s $TIME_COST_FILE ]]; then
-  echo "Time cost for each tool:" > $TIME_COST_FILE
+  echo "Time cost for each tool:\n" > $TIME_COST_FILE
 fi
 
 # 1. Test agd_vcf
 if [[ ! -s agd_vcf.vcf.gz ]]; then
   echo "Testing agd_vcf..."
-  echo "agd_vcf:" >> $TIME_COST_FILE
+  echo "\nagd_vcf:" >> $TIME_COST_FILE
   { time zcat $DRAGEN_VCF | ./agd_vcf --id_map_file=$ID_MAP_FILE | bgzip > agd_vcf.vcf.gz ; } 2>> $TIME_COST_FILE
   zcat agd_vcf.vcf.gz | grep -v "^#" | wc -l >> $TIME_COST_FILE
 fi
@@ -21,7 +21,7 @@ fi
 # 2. Test bcftools
 if [[ ! -s bcftools.vcf.gz ]]; then
   echo "Testing bcftools..."
-  echo "bcftools:" >> $TIME_COST_FILE
+  echo "\nbcftools:" >> $TIME_COST_FILE
   { time bcftools view -f PASS $DRAGEN_VCF -O v | bgzip > bcftools.vcf.gz ; } 2>> $TIME_COST_FILE
   zcat bcftools.vcf.gz | grep -v "^#" | wc -l >> $TIME_COST_FILE
 fi
@@ -29,7 +29,7 @@ fi
 # 3. Test awk
 if [[ ! -s awk.vcf.gz ]]; then
   echo "Testing awk..."
-  echo "awk:" >> $TIME_COST_FILE
+  echo "\nawk:" >> $TIME_COST_FILE
   { time zcat $DRAGEN_VCF | awk '$7 == "PASS" || $1 ~ /^#/' | bgzip > awk.vcf.gz ; } 2>> $TIME_COST_FILE
   zcat awk.vcf.gz | grep -v "^#" | wc -l >> $TIME_COST_FILE
 fi
