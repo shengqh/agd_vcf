@@ -6,100 +6,109 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <map>
-#include <zlib.h>
 
-void filter_vcf(const std::string& id_map_file, gzFile gz_out) {
-    // Read the id_map_file and store the mappings
+constexpr size_t BUFFER_SIZE = 2 * 1024 * 1024;  // 2MB buffer
+
+class VCFProcessor {
+private:
+    char* buffer;
+    size_t buffer_size;
     std::unordered_map<std::string, std::string> id_map;
-    std::ifstream map_file(id_map_file);
-    if (!map_file.is_open()) {
-        std::cerr << "Could not open id_map_file: " << id_map_file << std::endl;
-        return;
+
+    bool is_pass_line(const char* line, size_t length) {
+        int tab_count = 0;
+        size_t pos = 0;
+        
+        while (pos < length && tab_count < 7) {
+            if (line[pos++] == '\t') {
+                tab_count++;
+                if (tab_count == 6) {
+                    return (pos + 4 <= length && 
+                            line[pos] == 'P' && 
+                            line[pos+1] == 'A' && 
+                            line[pos+2] == 'S' && 
+                            line[pos+3] == 'S' && 
+                            (line[pos+4] == '\t' || line[pos+4] == '\n'));
+                }
+            }
+        }
+        return false;
     }
 
-    // Ignore the header line
-    std::string map_line;
-    std::getline(map_file, map_line);
+public:
+    VCFProcessor(const std::string& id_map_file) : buffer(new char[BUFFER_SIZE]), buffer_size(BUFFER_SIZE) {
+        std::ifstream map_file(id_map_file);
+        if (!map_file.is_open()) {
+            throw std::runtime_error("Could not open id_map_file: " + id_map_file);
+        }
 
-    // Read the rest of the file
-    while (std::getline(map_file, map_line)) {
-        std::istringstream iss(map_line);
-        std::string col1, col2, col3;
-        if (std::getline(iss, col1, '\t') && std::getline(iss, col2, '\t') ) {
-            if (col2 != "-") {
-                id_map[col1] = col2;
+        std::string map_line;
+        std::getline(map_file, map_line);  // Skip header
+
+        while (std::getline(map_file, map_line)) {
+            std::istringstream iss(map_line);
+            std::string col1, col2;
+            if (std::getline(iss, col1, '\t') && std::getline(iss, col2, '\t')) {
+                if (col2 != "-") {
+                    id_map[col1] = col2;
+                }
             }
         }
     }
-    map_file.close();
 
-    // Process the VCF file from standard input
-    std::string line;
-    bool header_processed = false;
+    ~VCFProcessor() {
+        delete[] buffer;
+    }
 
-    // First section: print lines starting with "##"
-    while (std::getline(std::cin, line)) {
-        if (line.substr(0, 2) == "##") {
-            if (gz_out) {
-                gzputs(gz_out, (line + "\n").c_str());
-            } else {
-                std::cout << line << std::endl;
-            }
-        } else if (line.substr(0, 6) == "#CHROM") {
-            // Process the header line with sample names
+    void process() {
+        std::ios::sync_with_stdio(false);
+        std::cin.tie(nullptr);
+        std::cout.tie(nullptr);
+        std::cin.rdbuf()->pubsetbuf(buffer, buffer_size);
+
+        std::string line;
+        line.reserve(buffer_size);
+
+        // Copy meta-information lines (##) directly
+        while (std::getline(std::cin, line) && line[0] == '#' && line[1] == '#') {
+            std::cout << line << '\n';
+        }
+
+        // Process the header line (#CHROM)
+        if (!line.empty() && line[0] == '#') {
             std::istringstream iss(line);
-            std::vector<std::string> columns;
-            std::string column;
-            while (std::getline(iss, column, '\t')) {
-                columns.push_back(column);
+            std::string field;
+            
+            // Output first 9 columns unchanged
+            for (int i = 0; i < 9; ++i) {
+                std::getline(iss, field, '\t');
+                if (i > 0) std::cout << '\t';
+                std::cout << field;
             }
 
-            // Replace sample names in the header line
-            for (size_t i = 9; i < columns.size(); ++i) {
-                if (id_map.find(columns[i]) != id_map.end()) {
-                    columns[i] = id_map[columns[i]];
-                }
+            // Process and output sample names
+            bool first = true;
+            while (std::getline(iss, field, '\t')) {
+                std::cout << '\t';
+                auto it = id_map.find(field);
+                std::cout << (it != id_map.end() ? it->second : field);
             }
-
-            // Print the modified header line
-            std::ostringstream oss;
-            for (size_t i = 0; i < columns.size(); ++i) {
-                if (i > 0) oss << '\t';
-                oss << columns[i];
-            }
-            oss << "\n";
-            if (gz_out) {
-                gzputs(gz_out, oss.str().c_str());
-            } else {
-                std::cout << oss.str();
-            }
-            header_processed = true;
-            break;
+            std::cout << '\n';
         } else {
-            throw std::runtime_error("Unexpected line format: " + line);
+            throw std::runtime_error("Invalid VCF format: missing header line");
         }
-    }
 
-    // Second section: process data lines
-    if (header_processed) {
-        while (std::getline(std::cin, line)) {
-            std::istringstream iss(line);
-            std::vector<std::string> columns;
-            std::string column;
-            for (int i = 0; i < 7 && std::getline(iss, column, '\t'); ++i) {
-                columns.push_back(column);
-            }
-
-            if (columns.size() == 7 && columns[6] == "PASS") {
-                if (gz_out) {
-                    gzputs(gz_out, (line + "\n").c_str());
-                } else {
-                    std::cout << line << std::endl;
-                }
+        // Process data lines
+        while (std::cin.getline(buffer, buffer_size)) {
+            size_t length = std::cin.gcount() - 1;
+            if (is_pass_line(buffer, length)) {
+                std::cout.write(buffer, length);
+                std::cout.put('\n');
             }
         }
     }
-}
+};
+
 
 std::map<std::string, std::string> parse_args(int argc, char* argv[]) {
     std::map<std::string, std::string> args;
@@ -118,29 +127,17 @@ std::map<std::string, std::string> parse_args(int argc, char* argv[]) {
 int main(int argc, char* argv[]) {
     auto args = parse_args(argc, argv);
     if (args.find("--id_map_file") == args.end()) {
-        std::cerr << "Usage: " << argv[0] << " --id_map_file=<id_map_file> [-o=<output_gz_file>]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " --id_map_file=<id_map_file>" << std::endl;
         return 1;
-    }
-
-    std::string id_map_file = args["--id_map_file"];
-    gzFile gz_out = nullptr;
-    if (args.find("-o") != args.end()) {
-        gz_out = gzopen(args["-o"].c_str(), "wb");
-        if (!gz_out) {
-            std::cerr << "Could not open output file: " << args["-o"] << std::endl;
-            return 1;
-        }
     }
 
     try {
-        filter_vcf(id_map_file, gz_out);
+        VCFProcessor processor(args["--id_map_file"]);
+        processor.process();
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
-        if (gz_out) gzclose(gz_out);
         return 1;
     }
 
-    if (gz_out) gzclose(gz_out);
     return 0;
 }
-
