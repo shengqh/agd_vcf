@@ -48,3 +48,5 @@ bcftools.vcf.gz
 bcftools.vcf.gz.samples
 awk.vcf.gz
 awk.vcf.gz.samples
+agd_vcf.thread4.vcf.gz
+awk.thread4.vcf.gz
