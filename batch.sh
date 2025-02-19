@@ -14,7 +14,7 @@ fi
 if [[ ! -s agd_vcf.vcf.gz ]]; then
   echo "Testing agd_vcf..."
   echo "agd_vcf:" >> $TIME_COST_FILE
-  { time zcat $DRAGEN_VCF | ./agd_vcf --id_map_file=$ID_MAP_FILE | bgzip > agd_vcf.vcf.gz ; } 2>> $TIME_COST_FILE
+  { time zcat $DRAGEN_VCF | ./agd_vcf --id_map_file=$ID_MAP_FILE --total_variants=52402 | bgzip > agd_vcf.vcf.gz ; } 2>> $TIME_COST_FILE
   zcat agd_vcf.vcf.gz | grep -v "^#" | wc -l >> $TIME_COST_FILE
 fi
 
@@ -39,7 +39,7 @@ fi
 if [[ ! -s agd_vcf.thread4.vcf.gz ]]; then
   echo "Testing agd_vcf.thread4..."
   echo "agd_vcf.thread4:" >> $TIME_COST_FILE
-  { time zcat $DRAGEN_VCF | ./agd_vcf --id_map_file=$ID_MAP_FILE | bgzip -@ 4 -c > agd_vcf.thread4.vcf.gz ; } 2>> $TIME_COST_FILE
+  { time zcat $DRAGEN_VCF | ./agd_vcf --id_map_file=$ID_MAP_FILE --total_variants=52402 | bgzip -@ 4 -c > agd_vcf.thread4.vcf.gz ; } 2>> $TIME_COST_FILE
 fi
 
 # 2. Test bcftools

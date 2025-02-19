@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <map>
+#include <chrono>
+#include <iomanip>
 
 constexpr size_t BUFFER_SIZE = 2 * 1024 * 1024;  // 2MB buffer
 
@@ -14,6 +16,8 @@ private:
     char* buffer;
     size_t buffer_size;
     std::unordered_map<std::string, std::string> id_map;
+    size_t total_variants;
+    std::chrono::steady_clock::time_point start_time;
 
     bool is_pass_line(const char* line, size_t length) {
         int tab_count = 0;
@@ -36,7 +40,11 @@ private:
     }
 
 public:
-    VCFProcessor(const std::string& id_map_file) : buffer(new char[BUFFER_SIZE]), buffer_size(BUFFER_SIZE) {
+    VCFProcessor(const std::string& id_map_file, size_t total_variants_)
+        : buffer(new char[BUFFER_SIZE])
+        , buffer_size(BUFFER_SIZE)
+        , total_variants(total_variants_)
+    {
         std::ifstream map_file(id_map_file);
         if (!map_file.is_open()) {
             throw std::runtime_error("Could not open id_map_file: " + id_map_file);
@@ -100,6 +108,8 @@ public:
             throw std::runtime_error("Invalid VCF format: missing header line");
         }
 
+        start_time = std::chrono::steady_clock::now();
+
         // Process data lines
         size_t count = 0;
         while (std::cin.getline(buffer, buffer_size)) {
@@ -107,19 +117,27 @@ public:
             if (is_pass_line(buffer, length)) {
                 std::cout.write(buffer, length);
                 std::cout.put('\n');
-                count++;
-                if (count % 10000 == 0) {
+            }
+            count++;
+            if (count % 10000 == 0 ){
+                if( total_variants > 0) {
+                    auto now = std::chrono::steady_clock::now();
+                    double elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start_time).count();
+                    double fraction = double(count) / double(total_variants);
+                    double total_time = fraction > 0 ? elapsed / fraction : 0;
+                    double remaining = total_time - elapsed;
+                    std::cerr << std::fixed << std::setprecision(1) << fraction * 100.0 << "% processed, ~" << remaining / 60.0 << "m remaining" << std::endl;
+                } else {
                     std::cerr << count << ", " << std::flush;
                 }
-                if (count % 100000 == 0) {
-                    std::cerr << std::endl << std::flush;
-                }
+            }
+            if (count % 100000 == 0 && total_variants == 0) {
+                std::cerr << std::endl << std::flush;
             }
         }
         std::cerr << count << std::endl << std::flush;
     }
 };
-
 
 std::map<std::string, std::string> parse_args(int argc, char* argv[]) {
     std::map<std::string, std::string> args;
@@ -137,13 +155,13 @@ std::map<std::string, std::string> parse_args(int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
     auto args = parse_args(argc, argv);
-    if (args.find("--id_map_file") == args.end()) {
-        std::cerr << "Usage: " << argv[0] << " --id_map_file=<id_map_file>" << std::endl;
+    if (args.find("--id_map_file") == args.end() || args.find("--total_variants") == args.end()) {
+        std::cerr << "Usage: " << argv[0] << " --id_map_file=<file> --total_variants=<num>" << std::endl;
         return 1;
     }
 
     try {
-        VCFProcessor processor(args["--id_map_file"]);
+        VCFProcessor processor(args["--id_map_file"], std::stoul(args["--total_variants"]));
         processor.process();
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
