@@ -126,7 +126,7 @@ public:
                     double fraction = double(count) / double(total_variants);
                     double total_time = fraction > 0 ? elapsed / fraction : 0;
                     double remaining = total_time - elapsed;
-                    std::cerr << std::fixed << std::setprecision(1) << fraction * 100.0 << "% processed, ~" << remaining / 60.0 << "m remaining" << std::endl;
+                    std::cerr << count << "/" << total_variants << ": " << std::fixed << std::setprecision(1) << fraction * 100.0 << "% processed, ~" << remaining / 60.0 << "m remaining" << std::endl;
                 } else {
                     std::cerr << count << ", " << std::flush;
                 }
@@ -154,19 +154,27 @@ std::map<std::string, std::string> parse_args(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-    auto args = parse_args(argc, argv);
-    if (args.find("--id_map_file") == args.end() || args.find("--total_variants") == args.end()) {
-        std::cerr << "Usage: " << argv[0] << " --id_map_file=<file> --total_variants=<num>" << std::endl;
-        return 1;
-    }
+  const char* VERSION = "1.0.0";
 
-    try {
-        VCFProcessor processor(args["--id_map_file"], std::stoul(args["--total_variants"]));
-        processor.process();
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    }
-
+  if (argc > 1 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) {
+    std::cout << "Version: " << VERSION << std::endl;
     return 0;
+  }
+
+  auto args = parse_args(argc, argv);
+  if (args.find("--id_map_file") == args.end() || args.find("--total_variants") == args.end()) {
+    std::cerr << "Usage: " << argv[0] << " --id_map_file=<file> --total_variants=<num>" << std::endl;
+    std::cerr << "Version: " << VERSION << std::endl;
+    return 1;
+  }
+
+  try {
+    VCFProcessor processor(args["--id_map_file"], std::stoul(args["--total_variants"]));
+    processor.process();
+  } catch (const std::exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
+  }
+
+  return 0;
 }
