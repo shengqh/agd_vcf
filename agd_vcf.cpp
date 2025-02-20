@@ -126,7 +126,16 @@ public:
                     double fraction = double(count) / double(total_variants);
                     double total_time = fraction > 0 ? elapsed / fraction : 0;
                     double remaining = total_time - elapsed;
-                    std::cerr << count << "/" << total_variants << ": " << std::fixed << std::setprecision(1) << fraction * 100.0 << "% processed, ~" << remaining / 60.0 << "m remaining" << std::endl;
+                    std::string unit = "Seconds";
+                    if (remaining > 60) {
+                        remaining /= 60;
+                        unit = "Minutes";
+                    }
+                    if (remaining > 60) {
+                        remaining /= 60;
+                        unit = "Hours";
+                    }
+                    std::cerr << count << "/" << total_variants << ": " << std::fixed << std::setprecision(1) << fraction * 100.0 << "% processed, ~" << remaining << " " << unit <<" remaining" << std::endl;
                 } else {
                     std::cerr << count << ", " << std::flush;
                 }
@@ -154,7 +163,7 @@ std::map<std::string, std::string> parse_args(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-  const char* VERSION = "1.0.0";
+  const char* VERSION = "1.0.1";
 
   if (argc > 1 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) {
     std::cout << "Version: " << VERSION << std::endl;
