@@ -7,7 +7,7 @@ ID_MAP_FILE="/nobackup/h_cqs/shengq2/biovu/AGD/SAMPLE_ID_MAP_2024_Q2_163K_primar
 # Output file for time costs
 TIME_COST_FILE="time_cost.txt"
 if [[ ! -s $TIME_COST_FILE ]]; then
-  echo "Time cost for each tool:\n" > $TIME_COST_FILE
+  echo "Time cost for each tool:" > $TIME_COST_FILE
 fi
 
 # 1. Test agd_vcf
@@ -41,15 +41,7 @@ if [[ ! -s agd_vcf.thread4.vcf.gz ]]; then
   echo "agd_vcf.thread4:" >> $TIME_COST_FILE
   { time zcat $DRAGEN_VCF | ./agd_vcf --id_map_file=$ID_MAP_FILE --total_variants=52402 | bgzip -@ 4 -c > agd_vcf.thread4.vcf.gz ; } 2>> $TIME_COST_FILE
 fi
-
-# 2. Test bcftools
-if [[ ! -s bcftools.thread4.vcf.gz ]]; then
-  echo "Testing bcftools.thread4..."
-  echo "bcftools.thread4:" >> $TIME_COST_FILE
-  { time bcftools view -f PASS $DRAGEN_VCF -O v | bgzip -@ 4 -c > bcftools.vcf.gz ; } 2>> $TIME_COST_FILE
-fi
-
-# 3. Test awk
+# 2. Test awk
 if [[ ! -s awk.thread4.vcf.gz ]]; then
   echo "Testing awk.thread4..."
   echo "awk.thread4:" >> $TIME_COST_FILE
