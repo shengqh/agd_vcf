@@ -135,7 +135,13 @@ public:
                         remaining /= 60;
                         unit = "Hours";
                     }
-                    std::cerr << count << "/" << total_variants << ": " << std::fixed << std::setprecision(1) << fraction * 100.0 << "% processed, ~" << remaining << " " << unit <<" remaining" << std::endl;
+                    auto t = std::time(nullptr);
+                    auto tm = *std::localtime(&t);
+                    std::cerr << std::put_time(&tm, "[%Y-%m-%d %H:%M:%S] ") 
+                         << count << "/" << total_variants << ": " 
+                         << std::fixed << std::setprecision(1) 
+                         << fraction * 100.0 << "% processed, ~" 
+                         << remaining << " " << unit <<" remaining" << std::endl;
                 } else {
                     std::cerr << count << ", " << std::flush;
                 }
@@ -144,7 +150,9 @@ public:
                 std::cerr << std::endl << std::flush;
             }
         }
-        std::cerr << count << std::endl << std::flush;
+        auto t = std::time(nullptr);
+        auto tm = *std::localtime(&t);
+        std::cerr << std::put_time(&tm, "[%Y-%m-%d %H:%M:%S] ") << count << std::endl << std::flush;
     }
 };
 
