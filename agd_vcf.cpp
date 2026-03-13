@@ -45,22 +45,24 @@ public:
         , buffer_size(BUFFER_SIZE)
         , total_variants(total_variants_)
     {
-        std::ifstream map_file(id_map_file);
-        if (!map_file.is_open()) {
-            throw std::runtime_error("Could not open id_map_file: " + id_map_file);
-        }
+        if (!id_map_file.empty()) {
+            std::ifstream map_file(id_map_file);
+            if (!map_file.is_open()) {
+                throw std::runtime_error("Could not open id_map_file: " + id_map_file);
+            }
 
-        std::string map_line;
-        std::getline(map_file, map_line);  // Skip header
+            std::string map_line;
+            std::getline(map_file, map_line);  // Skip header
 
-        while (std::getline(map_file, map_line)) {
-            std::istringstream iss(map_line);
-            std::string col1, col2;
-            if (std::getline(iss, col1, '\t') && std::getline(iss, col2, '\t')) {
-                if (col2 == "-") {
-                    id_map[col1] = col1 + "_INVALID";
-                }else{
-                    id_map[col1] = col2;
+            while (std::getline(map_file, map_line)) {
+                std::istringstream iss(map_line);
+                std::string col1, col2;
+                if (std::getline(iss, col1, '\t') && std::getline(iss, col2, '\t')) {
+                    if (col2 == "-") {
+                        id_map[col1] = col1 + "_INVALID";
+                    } else {
+                        id_map[col1] = col2;
+                    }
                 }
             }
         }
@@ -89,19 +91,30 @@ public:
             std::istringstream iss(line);
             std::string field;
             
-            // Output first 9 columns unchanged
-            for (int i = 0; i < 9; ++i) {
-                std::getline(iss, field, '\t');
-                if (i > 0) std::cout << '\t';
-                std::cout << field;
-            }
-
-            // Process and output sample names
-            bool first = true;
+            // Check if there are only 8 columns in the header
+            std::vector<std::string> header_fields;
             while (std::getline(iss, field, '\t')) {
+                header_fields.push_back(field);
+            }
+            if (header_fields.size() == 8) {
+                // Output all 8 columns unchanged
+                for (size_t i = 0; i < header_fields.size(); ++i) {
+                    if (i > 0) std::cout << '\t';
+                    std::cout << header_fields[i];
+                }
+                std::cout << '\n';
+                return;
+            }
+            // Output first 9 columns unchanged, the 9th column is FORMAT
+            for (int i = 0; i < 9; ++i) {
+                if (i > 0) std::cout << '\t';
+                std::cout << header_fields[i];
+            }
+            // Process and output sample names
+            for (size_t i = 9; i < header_fields.size(); ++i) {
                 std::cout << '\t';
-                auto it = id_map.find(field);
-                std::cout << (it != id_map.end() ? it->second : field);
+                auto it = id_map.find(header_fields[i]);
+                std::cout << (it != id_map.end() ? it->second : header_fields[i]);
             }
             std::cout << '\n';
         } else {
@@ -171,7 +184,7 @@ std::map<std::string, std::string> parse_args(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-  const char* VERSION = "1.0.1";
+  const char* VERSION = "1.0.2";
 
   if (argc > 1 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) {
     std::cout << "Version: " << VERSION << std::endl;
@@ -179,14 +192,20 @@ int main(int argc, char* argv[]) {
   }
 
   auto args = parse_args(argc, argv);
-  if (args.find("--id_map_file") == args.end() || args.find("--total_variants") == args.end()) {
-    std::cerr << "Usage: " << argv[0] << " --id_map_file=<file> --total_variants=<num>" << std::endl;
+  if (args.find("--total_variants") == args.end()) {
+    std::cerr << "Usage: " << argv[0] << " [--id_map_file=<file>] --total_variants=<num>" << std::endl;
     std::cerr << "Version: " << VERSION << std::endl;
     return 1;
   }
 
   try {
-    VCFProcessor processor(args["--id_map_file"], std::stoul(args["--total_variants"]));
+    std::string id_map_file;
+    auto it = args.find("--id_map_file");
+    if (it != args.end()) {
+      id_map_file = it->second;
+    }
+
+    VCFProcessor processor(id_map_file, std::stoul(args["--total_variants"]));
     processor.process();
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
