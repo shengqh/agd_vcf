@@ -23,8 +23,6 @@ private:
         int tab_count = 0;
         size_t pos = 0;
 
-        std::cout << "Processing line: " << line << std::endl; // Debug output
-        
         while (pos < length && tab_count < 7) {
             if (line[pos++] == '\t') {
                 tab_count++;
@@ -186,7 +184,7 @@ std::map<std::string, std::string> parse_args(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-  const char* VERSION = "1.0.3";
+  const char* VERSION = "1.0.4";
 
   if (argc > 1 && (std::string(argv[1]) == "-v" || std::string(argv[1]) == "--version")) {
     std::cout << "Version: " << VERSION << std::endl;
